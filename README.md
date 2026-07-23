@@ -58,7 +58,9 @@ npm start
 
 ## 公网部署（让场外/异地人员也能扫码）
 
-默认二维码内容使用**局域网 IP**，只能在同 WiFi 下访问。要让公网用户扫码，选其一：
+- **二维码地址自动识别**：部署到 Render / Fly.io / 任意反向代理平台时，系统会读取平台透传的 `X-Forwarded-Proto` 与请求 `Host`，**自动**把二维码指向公网域名——**不设置 `PUBLIC_URL` 也能正确扫码**。
+- **仍推荐显式设置 `PUBLIC_URL`**：手动指定最稳妥，避免个别平台不透明代理导致识别偏差。
+- 本地 `npm start`（无代理）时，二维码回退为局域网 IP，仅供同 WiFi 调试。
 
 ### 方案 A：云服务器部署
 1. 把整个目录上传到云服务器（如腾讯云/阿里云）。
@@ -87,7 +89,7 @@ PUBLIC_URL=https://xxx.cpolar.cn npm start
   ```
 - **Render / Fly.io / Railway / Heroku**：连接 Git 仓库后，平台自动识别 `Dockerfile` 或 `Procfile` 构建，`Start` 命令为 `node server.js`，在环境变量里设置 `PUBLIC_URL` 即可。
 
-> 无论哪种方式，务必设置 `PUBLIC_URL`，二维码与打印地址才会指向公网域名。
+> 推荐显式设置 `PUBLIC_URL`（见各方案命令）以获得最稳妥的公网二维码；不设置时，系统也会自动根据平台透传的协议与域名生成，绝大多数 PaaS 可直接扫码。
 
 ## API 说明
 
