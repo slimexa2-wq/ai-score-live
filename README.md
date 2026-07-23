@@ -91,6 +91,37 @@ PUBLIC_URL=https://xxx.cpolar.cn npm start
 
 > 推荐显式设置 `PUBLIC_URL`（见各方案命令）以获得最稳妥的公网二维码；不设置时，系统也会自动根据平台透传的协议与域名生成，绝大多数 PaaS 可直接扫码。
 
+### 方案 D：腾讯云轻量应用服务器（推荐 · 最稳）
+
+固定公网 IP、服务器常驻、链接不变，**所有评委都能访问**；且经 Nginx 反代直连（不像 Cloudflare 隧道会缓冲 SSE），**大屏实时同步稳定可靠**。本仓库已附带一键部署脚本。
+
+**步骤（约 5 分钟）：**
+
+1. **购买轻量应用服务器**：腾讯云控制台 → 轻量应用服务器 → 新建，镜像选 **Ubuntu 22.04 LTS**，配置 2核2G 足够（约 60–100 元/年）。
+2. **放通防火墙**：控制台 → 该服务器 → 防火墙 → 添加规则，放通 **TCP 80** 端口（应用类型选「HTTP」即可）。
+3. **登录服务器**：控制台「登录」或本地 SSH（`ssh root@你的公网IP`）。
+4. **一键部署**（root 执行）：
+   ```bash
+   bash <(curl -sSL https://raw.githubusercontent.com/slimexa2-wq/ai-score-live/main/deploy/tencent-lighthouse-deploy.sh)
+   ```
+   脚本会自动：装 Node20 + Nginx → 拉代码 → `systemd` 保活 → 配 Nginx 反代（**关闭 SSE 缓冲**）→ 打印访问地址。
+5. **访问**：
+   - 主持人大屏：`http://你的公网IP/live`（含二维码，扫码即评）
+   - 评委评分页：`http://你的公网IP/`
+
+**关键特性：**
+- 服务器重启后服务**自动拉起**（`systemd` 保活，`Restart=always`）。
+- 评分数据落盘在 `/opt/ai-score-live/data/scores.json`，**持久不丢**（轻量服务器磁盘持久，非临时盘）。
+- Nginx 反代层 `proxy_buffering off`，SSE 实时推送不被缓冲，大屏即时刷新。
+
+**可选：绑定域名 + HTTPS（更专业）**
+若你有域名并已解析到该公网 IP，把 `deploy/nginx-ai-score.conf` 里的 `listen 80;` 改为 `listen 443 ssl;` 并补证书路径，或用 `certbot --nginx` 一键申请免费 Let's Encrypt 证书；二维码会自动识别 `https` 协议。
+
+**后续更新代码：**
+```bash
+cd /opt/ai-score-live && git pull && sudo systemctl restart ai-score
+```
+
 ## API 说明
 
 | 方法 | 路径 | 说明 |
