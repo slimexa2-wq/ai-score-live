@@ -89,6 +89,21 @@
         .btn-export:hover { transform: translateY(-1px); opacity: .92; }
         .btn-export:active { transform: translateY(0); }
 
+        /* ===== 清空数据按钮（破坏性，红色警示） ===== */
+        .btn-clear {
+            background: transparent;
+            color: #ff6b6b;
+            border: 1px solid #ff6b6b;
+            border-radius: 10px;
+            padding: 8px 16px;
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: background .15s ease, color .15s ease;
+        }
+        .btn-clear:hover { background: #ff6b6b; color: #1a1a1a; }
+        .btn-clear:active { transform: scale(.97); }
+
         /* ===== 总览卡片 ===== */
         .overview {
             display: grid;
@@ -203,6 +218,7 @@
             <span class="dot" id="connDot"></span>
             <span id="connText">连接中…</span>
             <button class="btn-export" id="btnExport">⬇ 导出备份</button>
+            <button class="btn-clear" id="btnClear">🧹 清空数据</button>
         </div>
 
         <!-- 总览 -->
@@ -342,6 +358,26 @@
                 URL.revokeObjectURL(url);
             } catch (e) {
                 alert('导出失败：' + e.message);
+            }
+        });
+
+        // ---- 清空数据：二次确认，防误触 ----
+        document.getElementById('btnClear').addEventListener('click', async () => {
+            if (!confirm('确定清空所有评分数据吗？\n\n比赛开始前的测试数据可一键清除，但此操作不可恢复！')) {
+                return;
+            }
+            try {
+                const r = await fetch('/api/clear', { method: 'POST', cache: 'no-store' });
+                const j = await r.json().catch(() => ({}));
+                if (!r.ok || !j.ok) {
+                    alert('清空失败（HTTP ' + r.status + '）');
+                    return;
+                }
+                // 立即刷新大屏
+                pollStats();
+                alert('已清空全部评分数据，可以开始正式比赛了 🎉');
+            } catch (e) {
+                alert('清空失败：' + e.message);
             }
         });
     </script>

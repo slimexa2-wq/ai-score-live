@@ -467,6 +467,15 @@ async function handleRequest(req, res) {
     return fs.createReadStream(DATA_FILE).pipe(res);
   }
 
+  // ---- 清空数据（比赛前清测试数据，破坏性操作） ----
+  if (req.method === 'POST' && pathname === '/api/clear') {
+    store.data = [];
+    persistData();
+    broadcastStats(); // 若大屏 SSE 连着，立即推送空数据
+    console.log('🧹 已清空全部评分数据');
+    return sendJson(res, 200, { ok: true, message: '已清空全部评分数据' });
+  }
+
   // ---- 404 ----
   res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
   res.end('404 Not Found');
