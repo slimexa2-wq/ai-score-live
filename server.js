@@ -451,6 +451,22 @@ async function handleRequest(req, res) {
     return;
   }
 
+  // ---- 导出备份（下载 scores.json） ----
+  if (req.method === 'GET' && pathname === '/api/export') {
+    ensureDataDir();
+    const stamp = new Date().toISOString().slice(0, 10);
+    const fname = `ai-score-backup-${stamp}.json`;
+    res.writeHead(200, {
+      'Content-Type': 'application/json; charset=utf-8',
+      'Content-Disposition': `attachment; filename="${fname}"`,
+      'Cache-Control': 'no-cache'
+    });
+    if (!fs.existsSync(DATA_FILE)) {
+      return res.end('[]');
+    }
+    return fs.createReadStream(DATA_FILE).pipe(res);
+  }
+
   // ---- 404 ----
   res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
   res.end('404 Not Found');
