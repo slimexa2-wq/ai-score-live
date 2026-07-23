@@ -23,7 +23,7 @@ const QRCode = require('qrcode');
 // ----------------------------------------------------------------
 const ROOT = __dirname;
 const PUBLIC_DIR = path.join(ROOT, 'public');
-const DATA_DIR = path.join(ROOT, 'data');
+const DATA_DIR = process.env.DATA_DIR ? path.resolve(process.env.DATA_DIR) : path.join(ROOT, 'data');
 const DATA_FILE = path.join(DATA_DIR, 'scores.json');
 const PORT = parseInt(process.env.PORT || '3000', 10);
 const HOST = '0.0.0.0';
