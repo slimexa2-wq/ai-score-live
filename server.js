@@ -279,6 +279,7 @@ function getLanIp() {
 // 二维码缓存；可通过 PUBLIC_URL 环境变量覆盖为对外公网地址
 let qrBuffer = null;
 let baseUrl = `http://localhost:${PORT}`;
+const qrCache = new Map(); // target -> Buffer（按指向地址缓存，避免重复生成）
 
 function resolveBaseUrl() {
   if (process.env.PUBLIC_URL) {
@@ -287,9 +288,31 @@ function resolveBaseUrl() {
   return `http://${getLanIp()}:${PORT}`;
 }
 
+// 根据请求动态解析二维码指向的地址：
+//   1) 显式配置了 PUBLIC_URL —— 以它为准（公网部署推荐方式）
+//   2) 否则用反向代理透传的协议(X-Forwarded-Proto) + 域名(req.host)
+//      —— 这样即使不配环境变量，部署到 Render/Fly/任意平台扫码也能正确落公网地址
+function resolveTarget(req) {
+  if (process.env.PUBLIC_URL) {
+    return process.env.PUBLIC_URL.replace(/\/+$/, '');
+  }
+  const proto = String(req.headers['x-forwarded-proto'] || 'http')
+    .split(',')[0]
+    .trim() || 'http';
+  const host = req.headers.host || `localhost:${PORT}`;
+  return `${proto}://${host}`;
+}
+
+async function getQrBuffer(target) {
+  if (qrCache.has(target)) return qrCache.get(target);
+  const buf = await QRCode.toBuffer(target, { type: 'png', width: 512, margin: 2 });
+  qrCache.set(target, buf);
+  return buf;
+}
+
 async function generateQrCode() {
   try {
-    qrBuffer = await QRCode.toBuffer(baseUrl, { type: 'png', width: 512, margin: 2 });
+    qrBuffer = await getQrBuffer(baseUrl);
     fs.writeFileSync(path.join(ROOT, 'qrcode.png'), qrBuffer);
     console.log('✅ 已生成二维码文件：qrcode.png (' + baseUrl + ')');
   } catch (err) {
@@ -319,22 +342,31 @@ async function handleRequest(req, res) {
     return sendHtmlFile(res, path.join(PUBLIC_DIR, 'live.html'));
   }
 
-  // ---- 二维码图片（接口） ----
+  // ---- 二维码图片（接口，按请求域名动态生成） ----
   if (req.method === 'GET' && pathname === '/api/qrcode') {
-    if (!qrBuffer) {
-      try {
-        qrBuffer = await QRCode.toBuffer(baseUrl, { type: 'png', width: 512, margin: 2 });
-      } catch (err) {
-        return sendJson(res, 500, { ok: false, error: '二维码生成失败' });
-      }
+    const target = resolveTarget(req);
+    let buf;
+    try {
+      buf = await getQrBuffer(target);
+    } catch (err) {
+      return sendJson(res, 500, { ok: false, error: '二维码生成失败' });
     }
     res.writeHead(200, { 'Content-Type': 'image/png', 'Cache-Control': 'no-cache' });
-    return res.end(qrBuffer);
+    return res.end(buf);
   }
 
-  // ---- 二维码图片（静态文件，兼容直接访问） ----
+  // ---- 二维码图片（静态路径，同样按请求域名动态生成） ----
   if (req.method === 'GET' && pathname === '/qrcode.png') {
-    return sendImageFile(res, path.join(ROOT, 'qrcode.png'));
+    const target = resolveTarget(req);
+    let buf;
+    try {
+      buf = await getQrBuffer(target);
+    } catch (err) {
+      // 退化到启动时生成的静态文件
+      return sendImageFile(res, path.join(ROOT, 'qrcode.png'));
+    }
+    res.writeHead(200, { 'Content-Type': 'image/png', 'Cache-Control': 'no-cache' });
+    return res.end(buf);
   }
 
   // ---- 提交评分 ----
