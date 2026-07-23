@@ -1,0 +1,14 @@
+# Render Blueprint —— 一键部署（免费层）
+# 部署后公网地址固定为 https://<service-name>.onrender.com
+# 这里已把 PUBLIC_URL 写死成该地址，启动后二维码会自动指向公网，无需手动改。
+services:
+  - type: web
+    name: ai-score-live
+    runtime: node
+    plan: free
+    region: oregon           # 可选：singapore / frankfurt 等
+    buildCommand: npm install
+    startCommand: node server.js
+    envVars:
+      - key: PUBLIC_URL
+        value: "https://ai-score-live.onrender.com"

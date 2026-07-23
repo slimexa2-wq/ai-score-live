@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AI竞赛 · 实时大屏</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --primary: #1a3a5c;
+            --primary-dark: #0d1f33;
+            --accent: #e8a838;
+            --accent-soft: rgba(232, 168, 56, 0.15);
+            --text: #e6eef7;
+            --text-dim: #9fb3c8;
+            --gold: #ffd700;
+            --silver: #c0c8d0;
+            --bronze: #d8985a;
+            --font: 'Segoe UI', system-ui, -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+        }
+        body {
+            font-family: var(--font);
+            background: radial-gradient(circle at 50% -10%, #16314f 0%, var(--primary-dark) 60%, #060f1a 100%);
+            color: var(--text);
+            min-height: 100vh;
+            padding: 18px 16px 40px;
+        }
+        .wrap { max-width: 1100px; margin: 0 auto; }
+
+        /* ===== 头部 ===== */
+        .top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 20px;
+            flex-wrap: wrap;
+            padding-bottom: 16px;
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+            margin-bottom: 18px;
+        }
+        .title-block h1 {
+            font-size: clamp(22px, 4vw, 36px);
+            font-weight: 800;
+            letter-spacing: 1px;
+            color: #fff;
+        }
+        .title-block .sub {
+            font-size: 13px;
+            color: var(--text-dim);
+            margin-top: 4px;
+            letter-spacing: 2px;
+        }
+        .qr-block {
+            text-align: center;
+            background: #fff;
+            border-radius: 14px;
+            padding: 10px 12px 8px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+        }
+        .qr-block img { display: block; width: 132px; height: 132px; border-radius: 6px; }
+        .qr-block .qr-cap { font-size: 12px; color: var(--primary); font-weight: 700; margin-top: 4px; }
+        .qr-block .qr-link {
+            font-size: 11px; color: var(--primary-light, #2a5a8c);
+            margin-top: 2px; word-break: break-all; max-width: 150px;
+        }
+
+        /* ===== 状态条 ===== */
+        .status-bar {
+            display: flex; align-items: center; gap: 8px;
+            font-size: 13px; color: var(--text-dim);
+            margin-bottom: 14px;
+        }
+        .dot { width: 9px; height: 9px; border-radius: 50%; background: #f59e0b; box-shadow: 0 0 8px #f59e0b; }
+        .dot.live { background: #22c55e; box-shadow: 0 0 8px #22c55e; }
+
+        /* ===== 总览卡片 ===== */
+        .overview {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin-bottom: 22px;
+        }
+        .ov-card {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 14px;
+            padding: 16px;
+            text-align: center;
+        }
+        .ov-card .num {
+            font-size: clamp(28px, 5vw, 44px);
+            font-weight: 800;
+            color: var(--accent);
+            line-height: 1.1;
+        }
+        .ov-card .lbl { font-size: 13px; color: var(--text-dim); margin-top: 4px; letter-spacing: 1px; }
+
+        /* ===== 排行榜 ===== */
+        .board-title {
+            font-size: 18px; font-weight: 700; color: #fff;
+            margin-bottom: 12px; display: flex; align-items: center; gap: 8px;
+        }
+        .rank-table { width: 100%; }
+        .rank-head, .rank-row {
+            display: grid;
+            grid-template-columns: 70px 1fr 160px 160px 160px 90px;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 14px;
+        }
+        .rank-head {
+            font-size: 13px; font-weight: 700; color: var(--text-dim);
+            letter-spacing: 1px;
+            border-bottom: 1px solid rgba(255,255,255,0.12);
+        }
+        .rank-row {
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 12px;
+            margin-bottom: 10px;
+            transition: transform .25s ease, background .25s ease;
+        }
+        .rank-row.top1 { background: linear-gradient(90deg, rgba(232,168,56,0.22), rgba(255,215,0,0.05)); border-color: rgba(232,168,56,0.45); }
+        .rank-row.top2 { background: linear-gradient(90deg, rgba(192,200,208,0.16), transparent); border-color: rgba(192,200,208,0.35); }
+        .rank-row.top3 { background: linear-gradient(90deg, rgba(216,152,90,0.16), transparent); border-color: rgba(216,152,90,0.35); }
+        .rank-row .c-rank { font-size: 26px; font-weight: 800; text-align: center; }
+        .rank-row.top1 .c-rank { color: var(--gold); }
+        .rank-row.top2 .c-rank { color: var(--silver); }
+        .rank-row.top3 .c-rank { color: var(--bronze); }
+        .rank-row .c-name { font-size: 17px; font-weight: 600; color: #fff; }
+        .rank-row .c-leader, .rank-row .c-public {
+            font-size: 16px; font-weight: 600; color: var(--text);
+        }
+        .rank-row .c-leader .sub, .rank-row .c-public .sub {
+            font-size: 12px; color: var(--text-dim); font-weight: 400; margin-left: 4px;
+        }
+        .rank-row .c-final {
+            font-size: 24px; font-weight: 800; color: var(--accent);
+        }
+        .rank-row .c-votes {
+            font-size: 18px; font-weight: 700; color: var(--text); text-align: center;
+        }
+
+        .empty {
+            text-align: center; padding: 60px 20px; color: var(--text-dim);
+        }
+        .empty .icon { font-size: 56px; opacity: .6; margin-bottom: 12px; }
+
+        /* ===== 手机适配 ===== */
+        @media (max-width: 640px) {
+            .top { flex-direction: column; align-items: center; text-align: center; }
+            .rank-head { display: none; }
+            .rank-row {
+                grid-template-columns: 46px 1fr auto;
+                grid-template-areas:
+                    "rank name final"
+                    "rank lrpr votes";
+                row-gap: 6px;
+            }
+            .rank-row .c-rank { grid-area: rank; font-size: 22px; }
+            .rank-row .c-name { grid-area: name; }
+            .rank-row .c-final { grid-area: final; text-align: right; }
+            .rank-row .c-leader { grid-area: lrpr; }
+            .rank-row .c-public { grid-area: lrpr; }
+            .rank-row .c-leader, .rank-row .c-public { font-size: 13px; }
+            .rank-row .c-votes { grid-area: votes; }
+        }
+    </style>
+</head>
+<body>
+    <div class="wrap">
+        <!-- 头部 -->
+        <div class="top">
+            <div class="title-block">
+                <h1>🏆 AI竞赛 · 实时大屏</h1>
+                <div class="sub">SCAN TO VOTE · 实时排行榜</div>
+            </div>
+            <div class="qr-block">
+                <img src="/api/qrcode" alt="评分二维码" />
+                <div class="qr-cap">扫码参与评分</div>
+                <div class="qr-link" id="qrLink">…</div>
+            </div>
+        </div>
+
+        <!-- 连接状态 -->
+        <div class="status-bar">
+            <span class="dot" id="connDot"></span>
+            <span id="connText">连接中…</span>
+        </div>
+
+        <!-- 总览 -->
+        <div class="overview">
+            <div class="ov-card"><div class="num" id="ovRecords">0</div><div class="lbl">评分记录</div></div>
+            <div class="ov-card"><div class="num" id="ovWorks">0</div><div class="lbl">参赛作品</div></div>
+            <div class="ov-card"><div class="num" id="ovJudges">0</div><div class="lbl">参与评委</div></div>
+        </div>
+
+        <!-- 排行榜 -->
+        <div class="board-title">📊 实时排行榜（按最终得分降序）</div>
+        <div class="rank-table">
+            <div class="rank-head">
+                <div>排名</div>
+                <div>参赛队</div>
+                <div>领导均分</div>
+                <div>大众均分</div>
+                <div>最终得分</div>
+                <div>总票数</div>
+            </div>
+            <div id="rankBody">
+                <div class="empty">
+                    <div class="icon">📭</div>
+                    <div>暂无评分数据，等待评委扫码提交…</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const fmt = v => Number(v).toFixed(2);
+
+        // 参与链接（与当前页面同 host，评委打开评分页）
+        document.getElementById('qrLink').textContent = location.origin;
+
+        const connDot = document.getElementById('connDot');
+        const connText = document.getElementById('connText');
+
+        function renderStats(stats) {
+            document.getElementById('ovRecords').textContent = stats.totalRecords;
+            document.getElementById('ovWorks').textContent = stats.totalWorks;
+            document.getElementById('ovJudges').textContent = stats.totalJudges;
+
+            const body = document.getElementById('rankBody');
+            if (!stats.works || stats.works.length === 0) {
+                body.innerHTML = `<div class="empty"><div class="icon">📭</div><div>暂无评分数据，等待评委扫码提交…</div></div>`;
+                return;
+            }
+
+            let html = '';
+            stats.works.forEach((w, i) => {
+                const rank = i + 1;
+                const medal = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : rank;
+                const topCls = rank <= 3 ? ' top' + rank : '';
+                html += `
+                    <div class="rank-row${topCls}">
+                        <div class="c-rank">${medal}</div>
+                        <div class="c-name">${escapeHtml(w.workName)}</div>
+                        <div class="c-leader">${fmt(w.leaderAvg)}<span class="sub">(${w.leaderCount}人)</span></div>
+                        <div class="c-public">${fmt(w.publicAvg)}<span class="sub">(${w.publicCount}组)</span></div>
+                        <div class="c-final">${fmt(w.finalScore)}</div>
+                        <div class="c-votes">${w.totalCount}</div>
+                    </div>`;
+            });
+            body.innerHTML = html;
+        }
+
+        function escapeHtml(s) {
+            return String(s).replace(/[&<>"']/g, c => ({
+                '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+            }[c]));
+        }
+
+        let es = null;
+        function connectSSE() {
+            es = new EventSource('/api/stream');
+            es.addEventListener('stats', (e) => {
+                try {
+                    renderStats(JSON.parse(e.data));
+                } catch (err) { /* ignore */ }
+            });
+            es.onopen = () => {
+                connDot.classList.add('live');
+                connText.textContent = '实时连接已建立';
+            };
+            es.onerror = () => {
+                connDot.classList.remove('live');
+                connText.textContent = '连接断开，正在重连…';
+                es.close();
+                setTimeout(connectSSE, 3000);
+            };
+        }
+        connectSSE();
+    </script>
+</body>
+</html>

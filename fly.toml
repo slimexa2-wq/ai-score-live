@@ -1,0 +1,28 @@
+# Fly.io 配置 —— 一键部署（免费层，常驻不休眠）
+# 部署后公网地址固定为 https://<app>.fly.dev
+# PUBLIC_URL 已写死成该地址，启动后二维码自动指向公网，无需手动改。
+app = "ai-score-live"
+primary_region = "hkg"   # 离大陆最近：hkg 香港 / nrt 东京 / sin 新加坡
+
+[build]
+  # 项目含 Dockerfile，Fly 会自动用它构建；也可改用下面这行用 Node builder
+  # builder = "heroku/nodejs"
+
+[env]
+  PORT = "3000"
+  PUBLIC_URL = "https://ai-score-live.fly.dev"
+
+[http_service]
+  internal_port = 3000
+  force_https = true
+  auto_stop_machines = true
+  auto_start_machines = true
+  [http_service.concurrency]
+    type = "connections"
+    hard_limit = 50
+    soft_limit = 40
+
+[[vm]]
+  cpu_kind = "shared"
+  cpus = 1
+  memory_mb = 256

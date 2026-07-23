@@ -1,0 +1,996 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes" />
+    <title>AI技能竞赛 · 双轨评审系统</title>
+    <style>
+        /* ===== 全局重置 & 变量 ===== */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        :root {
+            --primary: #1a3a5c;
+            --primary-light: #2a5a8c;
+            --primary-dark: #0d1f33;
+            --accent: #e8a838;
+            --bg: #f0f4f9;
+            --card-bg: #ffffff;
+            --text: #1e293b;
+            --text-light: #64748b;
+            --border: #e2e8f0;
+            --shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
+            --radius: 16px;
+            --radius-sm: 10px;
+            --transition: 0.25s ease;
+            --font: 'Segoe UI', system-ui, -apple-system, sans-serif;
+        }
+        body {
+            font-family: var(--font);
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            padding: 16px 12px 40px;
+            display: flex;
+            justify-content: center;
+        }
+        .app {
+            max-width: 560px;
+            width: 100%;
+        }
+
+        /* ===== 头部 ===== */
+        .header {
+            text-align: center;
+            padding: 18px 0 20px;
+        }
+        .header h1 {
+            font-size: 26px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            color: var(--primary);
+        }
+        .header h1 span {
+            color: var(--accent);
+        }
+        .header .sub {
+            font-size: 14px;
+            color: var(--text-light);
+            margin-top: 4px;
+            letter-spacing: 1px;
+        }
+        .header .badge {
+            display: inline-block;
+            background: var(--accent);
+            color: #fff;
+            font-size: 11px;
+            font-weight: 600;
+            padding: 3px 14px;
+            border-radius: 20px;
+            margin-top: 6px;
+            letter-spacing: 0.3px;
+        }
+
+        /* ===== 模式切换 ===== */
+        .tabs {
+            display: flex;
+            gap: 6px;
+            background: var(--card-bg);
+            border-radius: var(--radius-sm);
+            padding: 4px;
+            box-shadow: var(--shadow);
+            margin: 8px 0 18px;
+        }
+        .tab-btn {
+            flex: 1;
+            border: none;
+            background: transparent;
+            padding: 10px 0;
+            font-size: 15px;
+            font-weight: 600;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: var(--transition);
+            color: var(--text-light);
+        }
+        .tab-btn.active {
+            background: var(--primary);
+            color: #fff;
+            box-shadow: 0 4px 12px rgba(26, 58, 92, 0.25);
+        }
+        .tab-btn:active {
+            transform: scale(0.96);
+        }
+
+        /* ===== 卡片通用 ===== */
+        .card {
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            padding: 20px 18px;
+            margin-bottom: 16px;
+            transition: var(--transition);
+        }
+        .card-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--primary);
+        }
+        .card-title .icon {
+            font-size: 20px;
+        }
+
+        /* ===== 表单 ===== */
+        .form-group {
+            margin-bottom: 14px;
+        }
+        .form-group label {
+            display: block;
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: 4px;
+            color: var(--text);
+        }
+        .form-group .hint {
+            font-size: 12px;
+            color: var(--text-light);
+            font-weight: 400;
+            margin-left: 6px;
+        }
+        .form-row {
+            display: flex;
+            gap: 12px;
+        }
+        .form-row .form-group {
+            flex: 1;
+        }
+        select, input[type="text"] {
+            width: 100%;
+            padding: 10px 14px;
+            border: 2px solid var(--border);
+            border-radius: var(--radius-sm);
+            font-size: 15px;
+            transition: var(--transition);
+            background: #fafcff;
+            color: var(--text);
+            outline: none;
+            appearance: auto;
+        }
+        select:focus, input[type="text"]:focus {
+            border-color: var(--primary-light);
+            box-shadow: 0 0 0 3px rgba(42, 90, 140, 0.12);
+        }
+        select {
+            cursor: pointer;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%2364748b' stroke-width='1.5' fill='none'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+            background-size: 12px;
+        }
+
+        /* ===== 评分滑块 ===== */
+        .dimension {
+            padding: 12px 0 8px;
+            border-bottom: 1px solid var(--border);
+        }
+        .dimension:last-child {
+            border-bottom: none;
+        }
+        .dimension-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2px;
+        }
+        .dimension-name {
+            font-size: 15px;
+            font-weight: 500;
+        }
+        .dimension-name .weight {
+            font-size: 12px;
+            font-weight: 400;
+            color: var(--text-light);
+            margin-left: 6px;
+        }
+        .dimension-score {
+            font-size: 22px;
+            font-weight: 700;
+            color: var(--primary);
+            min-width: 36px;
+            text-align: right;
+        }
+        .dimension-score .max {
+            font-size: 14px;
+            font-weight: 400;
+            color: var(--text-light);
+        }
+        .dimension-tips {
+            font-size: 12px;
+            color: var(--text-light);
+            margin: 2px 0 6px 0;
+            padding-left: 2px;
+            line-height: 1.5;
+            border-left: 3px solid var(--accent);
+            padding-left: 8px;
+            background: #fafcff;
+            border-radius: 4px;
+        }
+        .dimension-desc {
+            font-size: 12px;
+            color: var(--text-light);
+            margin-bottom: 6px;
+            padding-left: 2px;
+        }
+        input[type="range"] {
+            width: 100%;
+            height: 6px;
+            -webkit-appearance: none;
+            appearance: none;
+            background: var(--border);
+            border-radius: 4px;
+            outline: none;
+            transition: var(--transition);
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            background: var(--primary-light);
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(26, 58, 92, 0.25);
+            transition: var(--transition);
+            border: 3px solid #fff;
+        }
+        input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.08);
+            background: var(--primary);
+        }
+        input[type="range"]::-moz-range-thumb {
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            background: var(--primary-light);
+            cursor: pointer;
+            border: 3px solid #fff;
+            box-shadow: 0 2px 8px rgba(26, 58, 92, 0.25);
+        }
+        input[type="range"]:focus::-webkit-slider-thumb {
+            box-shadow: 0 0 0 4px rgba(42, 90, 140, 0.2);
+        }
+        .range-labels {
+            display: flex;
+            justify-content: space-between;
+            font-size: 11px;
+            color: var(--text-light);
+            padding: 0 2px;
+            margin-top: 2px;
+        }
+
+        /* ===== 等级指示 ===== */
+        .level-excellent { background: #d1fae5; color: #065f46; }
+        .level-good { background: #dbeafe; color: #1e40af; }
+        .level-average { background: #fef3c7; color: #92400e; }
+        .level-poor { background: #fee2e2; color: #991b1b; }
+
+        /* ===== 结果预览 ===== */
+        .result-preview {
+            background: #f8fafc;
+            border-radius: var(--radius-sm);
+            padding: 14px 16px;
+            margin: 14px 0 6px;
+            border: 2px dashed var(--border);
+        }
+        .result-preview .row {
+            display: flex;
+            justify-content: space-between;
+            padding: 3px 0;
+            font-size: 14px;
+        }
+        .result-preview .row .label {
+            color: var(--text-light);
+        }
+        .result-preview .row .value {
+            font-weight: 600;
+        }
+        .result-preview .total {
+            border-top: 2px solid var(--border);
+            margin-top: 6px;
+            padding-top: 8px;
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--primary);
+            display: flex;
+            justify-content: space-between;
+        }
+        .result-preview .total .label {
+            color: var(--text);
+        }
+
+        /* ===== 按钮 ===== */
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 16px;
+            flex-wrap: wrap;
+        }
+        .btn {
+            flex: 1;
+            min-width: 100px;
+            padding: 12px 20px;
+            border: none;
+            border-radius: var(--radius-sm);
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            text-align: center;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+        .btn:active {
+            transform: scale(0.97);
+        }
+        .btn-primary {
+            background: var(--primary);
+            color: #fff;
+            box-shadow: 0 4px 14px rgba(26, 58, 92, 0.25);
+        }
+        .btn-primary:hover {
+            background: var(--primary-dark);
+        }
+        .btn-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .btn-outline {
+            background: transparent;
+            color: var(--text-light);
+            border: 2px solid var(--border);
+        }
+        .btn-outline:hover {
+            border-color: var(--text-light);
+            color: var(--text);
+        }
+        .btn-accent {
+            background: var(--accent);
+            color: #fff;
+            box-shadow: 0 4px 14px rgba(232, 168, 56, 0.3);
+        }
+        .btn-accent:hover {
+            background: #d49a2e;
+        }
+        .btn-sm {
+            padding: 8px 14px;
+            font-size: 13px;
+            min-width: auto;
+        }
+
+        /* ===== Toast ===== */
+        .toast {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%) translateY(-80px);
+            background: var(--primary-dark);
+            color: #fff;
+            padding: 12px 28px;
+            border-radius: var(--radius-sm);
+            font-size: 15px;
+            font-weight: 500;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2);
+            z-index: 999;
+            opacity: 0;
+            transition: all 0.4s ease;
+            pointer-events: none;
+            max-width: 90%;
+            text-align: center;
+        }
+        .toast.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+        .toast.success { background: #065f46; }
+        .toast.error { background: #991b1b; }
+
+        /* ===== 汇总页面 ===== */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+        .stat-item {
+            background: #f8fafc;
+            border-radius: var(--radius-sm);
+            padding: 12px 8px;
+            text-align: center;
+        }
+        .stat-item .num {
+            font-size: 26px;
+            font-weight: 700;
+            color: var(--primary);
+        }
+        .stat-item .label {
+            font-size: 12px;
+            color: var(--text-light);
+            margin-top: 2px;
+        }
+
+        .work-result {
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            padding: 14px 16px;
+            margin-bottom: 12px;
+            background: #fafcff;
+        }
+        .work-result .work-name {
+            font-size: 17px;
+            font-weight: 600;
+            color: var(--primary);
+            margin-bottom: 6px;
+        }
+        .work-result .work-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px 20px;
+            font-size: 14px;
+        }
+        .work-result .work-meta .item {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .work-result .work-meta .item .tag {
+            display: inline-block;
+            padding: 1px 10px;
+            border-radius: 10px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        .tag-leader { background: #dbeafe; color: #1e40af; }
+        .tag-public { background: #fef3c7; color: #92400e; }
+        .tag-final { background: #d1fae5; color: #065f46; }
+        .work-result .detail-link {
+            margin-top: 8px;
+            font-size: 13px;
+            color: var(--primary-light);
+            cursor: pointer;
+            display: inline-block;
+            font-weight: 500;
+        }
+        .work-result .detail-link:hover {
+            text-decoration: underline;
+        }
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--text-light);
+        }
+        .empty-state .icon {
+            font-size: 48px;
+            margin-bottom: 12px;
+            opacity: 0.6;
+        }
+
+        /* ===== 隐藏 ===== */
+        .hidden {
+            display: none !important;
+        }
+
+        /* ===== 响应式 ===== */
+        @media (max-width: 480px) {
+            .card {
+                padding: 16px 14px;
+            }
+            .header h1 {
+                font-size: 22px;
+            }
+            .stats-grid {
+                grid-template-columns: repeat(3, 1fr);
+                gap: 6px;
+            }
+            .stat-item .num {
+                font-size: 20px;
+            }
+            .btn-group .btn {
+                flex: 1 1 100%;
+            }
+            .form-row {
+                flex-direction: column;
+                gap: 6px;
+            }
+            .dimension-score {
+                font-size: 19px;
+            }
+            .result-preview .total {
+                font-size: 16px;
+            }
+        }
+        @media (min-width: 768px) {
+            body {
+                padding: 30px 20px;
+            }
+            .app {
+                max-width: 640px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app" id="app">
+
+        <!-- Toast -->
+        <div class="toast" id="toast"></div>
+
+        <!-- 头部 -->
+        <header class="header">
+            <h1>🏆 AI<span>竞赛</span></h1>
+            <div class="sub">双轨评审 · 四维加权</div>
+            <div class="badge">⚡ 领导 × 4 ｜ 大众 × 8</div>
+        </header>
+
+        <!-- Tab 切换 -->
+        <div class="tabs">
+            <button class="tab-btn active" data-tab="score" id="tabScore">📝 评分</button>
+            <button class="tab-btn" data-tab="summary" id="tabSummary">📊 汇总</button>
+        </div>
+
+        <!-- ============================================================ -->
+        <!-- 评分面板 -->
+        <!-- ============================================================ -->
+        <div id="panelScore">
+            <div class="card">
+                <div class="card-title"><span class="icon">👤</span> 评委身份</div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>类型 <span class="hint">(双轨制)</span></label>
+                        <select id="judgeType">
+                            <option value="leader">领导评审组</option>
+                            <option value="public">大众评审组</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>评委姓名</label>
+                        <select id="judgeName">
+                            <!-- 动态由 js 填充 -->
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group" style="margin-top:4px;">
+                    <label>参赛队名</label>
+                    <select id="workName">
+                        <!-- 固定列表，由 js 填充 -->
+                    </select>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-title"><span class="icon">📐</span> 四维评分 <span style="font-size:13px;font-weight:400;color:var(--text-light);margin-left:6px;">1–10 分</span></div>
+
+                <!-- 创新性 30% -->
+                <div class="dimension">
+                    <div class="dimension-header">
+                        <span class="dimension-name">💡 创新性 <span class="weight">(30%)</span></span>
+                        <span class="dimension-score"><span id="scoreInnovation">5</span><span class="max">/10</span></span>
+                    </div>
+                    <div class="dimension-tips">原创性 · 思路新颖 · 突破性</div>
+                    <div class="dimension-desc" id="descInnovation">—— 一般，亮点不足</div>
+                    <input type="range" id="sliderInnovation" min="1" max="10" value="5" step="1" />
+                    <div class="range-labels"><span>1 较差</span><span>10 优秀</span></div>
+                </div>
+
+                <!-- 实用性 40% -->
+                <div class="dimension">
+                    <div class="dimension-header">
+                        <span class="dimension-name">🔧 实用性 <span class="weight">(40%)</span></span>
+                        <span class="dimension-score"><span id="scorePracticality">5</span><span class="max">/10</span></span>
+                    </div>
+                    <div class="dimension-tips">问题解决效果 · 场景适用性 · 业务提效价值</div>
+                    <div class="dimension-desc" id="descPracticality">—— 一般，亮点不足</div>
+                    <input type="range" id="sliderPracticality" min="1" max="10" value="5" step="1" />
+                    <div class="range-labels"><span>1 较差</span><span>10 优秀</span></div>
+                </div>
+
+                <!-- 作品质量 20% -->
+                <div class="dimension">
+                    <div class="dimension-header">
+                        <span class="dimension-name">🏅 作品质量 <span class="weight">(20%)</span></span>
+                        <span class="dimension-score"><span id="scoreQuality">5</span><span class="max">/10</span></span>
+                    </div>
+                    <div class="dimension-tips">完整度 · 专业度 · AI工具熟练度</div>
+                    <div class="dimension-desc" id="descQuality">—— 一般，亮点不足</div>
+                    <input type="range" id="sliderQuality" min="1" max="10" value="5" step="1" />
+                    <div class="range-labels"><span>1 较差</span><span>10 优秀</span></div>
+                </div>
+
+                <!-- 现场呈现 10% -->
+                <div class="dimension">
+                    <div class="dimension-header">
+                        <span class="dimension-name">🎤 现场呈现 <span class="weight">(10%)</span></span>
+                        <span class="dimension-score"><span id="scorePresentation">5</span><span class="max">/10</span></span>
+                    </div>
+                    <div class="dimension-tips">展示质量 · 答辩回应准确性</div>
+                    <div class="dimension-desc" id="descPresentation">—— 一般，亮点不足</div>
+                    <input type="range" id="sliderPresentation" min="1" max="10" value="5" step="1" />
+                    <div class="range-labels"><span>1 较差</span><span>10 优秀</span></div>
+                </div>
+
+                <!-- 结果预览 -->
+                <div class="result-preview" id="resultPreview">
+                    <div class="row"><span class="label">💡 创新性 (30%)</span><span class="value" id="previewInnovation">5.0</span></div>
+                    <div class="row"><span class="label">🔧 实用性 (40%)</span><span class="value" id="previewPracticality">5.0</span></div>
+                    <div class="row"><span class="label">🏅 作品质量 (20%)</span><span class="value" id="previewQuality">5.0</span></div>
+                    <div class="row"><span class="label">🎤 现场呈现 (10%)</span><span class="value" id="previewPresentation">5.0</span></div>
+                    <div class="total"><span class="label">⭐ 加权总分</span><span id="previewTotal">5.00</span></div>
+                </div>
+
+                <div class="btn-group">
+                    <button class="btn btn-primary" id="btnSubmit">✅ 提交评分</button>
+                    <button class="btn btn-outline" id="btnReset">🔄 重置</button>
+                </div>
+            </div>
+
+            <div class="card" style="background:#fafcff;border:1px solid var(--border);">
+                <div style="font-size:13px;color:var(--text-light);display:flex;justify-content:space-between;flex-wrap:wrap;gap:4px;">
+                    <span>📌 已提交 <strong id="recordCount">0</strong> 条评分</span>
+                    <span style="cursor:pointer;color:var(--primary-light);font-weight:500;" id="gotoSummary">查看汇总 →</span>
+                </div>
+                <div style="font-size:12px;color:var(--text-light);margin-top:6px;line-height:1.5;">
+                    💡 数据已统一存储在服务端，扫码的评委与 <a href="/live" style="color:var(--primary-light);">大屏</a> 实时同步。
+                </div>
+            </div>
+        </div>
+
+        <!-- ============================================================ -->
+        <!-- 汇总面板（服务端数据） -->
+        <!-- ============================================================ -->
+        <div id="panelSummary" class="hidden">
+            <div class="card">
+                <div class="card-title"><span class="icon">📊</span> 数据总览</div>
+                <div class="stats-grid" id="statsGrid">
+                    <div class="stat-item"><div class="num" id="statRecords">0</div><div class="label">评分记录</div></div>
+                    <div class="stat-item"><div class="num" id="statWorks">0</div><div class="label">作品数</div></div>
+                    <div class="stat-item"><div class="num" id="statJudges">0</div><div class="label">评委数</div></div>
+                </div>
+                <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                    <button class="btn btn-accent btn-sm" id="btnRefresh">🔄 刷新统计</button>
+                    <a class="btn btn-outline btn-sm" href="/live" style="text-decoration:none;">📺 打开大屏</a>
+                </div>
+            </div>
+
+            <div id="summaryContent">
+                <div class="empty-state">
+                    <div class="icon">📭</div>
+                    <p>暂无评分数据<br /><span style="font-size:13px;">请先在「评分」面板提交评分</span></p>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // ================================================================
+        // 核心逻辑（数据层已从 localStorage 迁移到服务端 API）
+        // ================================================================
+
+        const WEIGHTS = {
+            innovation: 0.30,
+            practicality: 0.40,
+            quality: 0.20,
+            presentation: 0.10
+        };
+
+        // ---------- 数据列表（与原版小程序一致） ----------
+        const LEADER_NAMES = ['龙章其', '景主席', '徐万霞', '肖小松'];
+        const PUBLIC_NAMES = ['第一组', '第二组', '第三组', '第四组', '第五组', '第六组', '第七组', '第八组'];
+        const TEAM_NAMES = [
+            '人力资源部(雪梨队)',
+            '公共事务部(美少女战士队)',
+            '市场拓展部(写报告不熬夜队)',
+            '保安子公司(勇敢牛牛队)',
+            '宜宾分公司(祥英小队)',
+            '郫都分公司(精益智营队)',
+            '龙泉+双流分公司(智汇小队)',
+            '绵阳分公司(风险防控队)'
+        ];
+
+        // ---------- DOM refs ----------
+        const $ = id => document.getElementById(id);
+        const judgeType = $('judgeType');
+        const judgeName = $('judgeName');
+        const workName = $('workName');
+
+        const sliders = {
+            innovation: $('sliderInnovation'),
+            practicality: $('sliderPracticality'),
+            quality: $('sliderQuality'),
+            presentation: $('sliderPresentation')
+        };
+        const scoreSpans = {
+            innovation: $('scoreInnovation'),
+            practicality: $('scorePracticality'),
+            quality: $('scoreQuality'),
+            presentation: $('scorePresentation')
+        };
+        const descSpans = {
+            innovation: $('descInnovation'),
+            practicality: $('descPracticality'),
+            quality: $('descQuality'),
+            presentation: $('descPresentation')
+        };
+        const previews = {
+            innovation: $('previewInnovation'),
+            practicality: $('previewPracticality'),
+            quality: $('previewQuality'),
+            presentation: $('previewPresentation'),
+            total: $('previewTotal')
+        };
+
+        const btnSubmit = $('btnSubmit');
+        const btnReset = $('btnReset');
+        const btnRefresh = $('btnRefresh');
+        const recordCount = $('recordCount');
+        const gotoSummary = $('gotoSummary');
+        const tabScore = $('tabScore');
+        const tabSummary = $('tabSummary');
+        const panelScore = $('panelScore');
+        const panelSummary = $('panelSummary');
+        const summaryContent = $('summaryContent');
+        const toast = $('toast');
+
+        // ---------- 工具函数 ----------
+        function getLevel(score) {
+            if (score >= 9) return { text: '优秀 · 标杆', cls: 'level-excellent' };
+            if (score >= 7) return { text: '良好 · 扎实', cls: 'level-good' };
+            if (score >= 5) return { text: '一般 · 亮点不足', cls: 'level-average' };
+            return { text: '较差 · 明显不足', cls: 'level-poor' };
+        }
+
+        function weightedScore(s) {
+            return (s.innovation * WEIGHTS.innovation +
+                s.practicality * WEIGHTS.practicality +
+                s.quality * WEIGHTS.quality +
+                s.presentation * WEIGHTS.presentation);
+        }
+
+        function formatNum(v) { return Number(v).toFixed(2); }
+
+        // ---------- 获取当前评分值 ----------
+        function getScores() {
+            return {
+                innovation: parseInt(sliders.innovation.value, 10),
+                practicality: parseInt(sliders.practicality.value, 10),
+                quality: parseInt(sliders.quality.value, 10),
+                presentation: parseInt(sliders.presentation.value, 10)
+            };
+        }
+
+        // ---------- 更新下拉列表 ----------
+        function updateJudgeNameOptions() {
+            const type = judgeType.value;
+            const names = type === 'leader' ? LEADER_NAMES : PUBLIC_NAMES;
+            const currentVal = judgeName.value;
+            judgeName.innerHTML = '';
+            names.forEach(name => {
+                const opt = document.createElement('option');
+                opt.value = name;
+                opt.textContent = name;
+                judgeName.appendChild(opt);
+            });
+            if (names.includes(currentVal)) {
+                judgeName.value = currentVal;
+            }
+        }
+
+        function initTeamOptions() {
+            workName.innerHTML = '';
+            TEAM_NAMES.forEach(name => {
+                const opt = document.createElement('option');
+                opt.value = name;
+                opt.textContent = name;
+                workName.appendChild(opt);
+            });
+        }
+
+        // ---------- 更新UI（评分预览） ----------
+        function updatePreview() {
+            const s = getScores();
+            for (const key of ['innovation', 'practicality', 'quality', 'presentation']) {
+                const val = s[key];
+                scoreSpans[key].textContent = val;
+                const level = getLevel(val);
+                descSpans[key].textContent = '—— ' + level.text;
+                descSpans[key].className = 'dimension-desc ' + level.cls;
+            }
+            const weighted = weightedScore(s);
+            previews.innovation.textContent = (s.innovation * WEIGHTS.innovation).toFixed(2);
+            previews.practicality.textContent = (s.practicality * WEIGHTS.practicality).toFixed(2);
+            previews.quality.textContent = (s.quality * WEIGHTS.quality).toFixed(2);
+            previews.presentation.textContent = (s.presentation * WEIGHTS.presentation).toFixed(2);
+            previews.total.textContent = weighted.toFixed(2);
+        }
+
+        // ---------- 重置表单 ----------
+        function resetForm() {
+            for (const key of ['innovation', 'practicality', 'quality', 'presentation']) {
+                sliders[key].value = 5;
+            }
+            judgeType.value = 'leader';
+            updateJudgeNameOptions();
+            workName.selectedIndex = 0;
+            updatePreview();
+        }
+
+        // ---------- 提交评分（调用服务端） ----------
+        async function submitScore() {
+            const jType = judgeType.value.toLowerCase();
+            const jName = judgeName.value.trim();
+            const wName = workName.value.trim();
+
+            if (!jName) { showToast('请选择评委姓名', 'error'); return; }
+            if (!wName) { showToast('请选择队名', 'error'); return; }
+
+            const s = getScores();
+            btnSubmit.disabled = true;
+
+            try {
+                const resp = await fetch('/api/score', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        judgeType: jType,
+                        judgeName: jName,
+                        workName: wName,
+                        innovation: s.innovation,
+                        practicality: s.practicality,
+                        quality: s.quality,
+                        presentation: s.presentation
+                    })
+                });
+                const data = await resp.json();
+
+                if (data.ok && data.record) {
+                    const w = data.record.weightedScore;
+                    showToast(`✅ 已提交「${wName}」评分 (${formatNum(w)}分)`, 'success');
+                    // 仅重置滑块，保留评委信息与队名以便连续提交
+                    for (const key of ['innovation', 'practicality', 'quality', 'presentation']) {
+                        sliders[key].value = 5;
+                    }
+                    updatePreview();
+                    refreshCount();
+                } else {
+                    showToast('❌ ' + (data.error || '提交失败'), 'error');
+                }
+            } catch (e) {
+                showToast('❌ 网络错误，提交失败', 'error');
+            } finally {
+                btnSubmit.disabled = false;
+            }
+        }
+
+        // ---------- 拉取总提交计数 ----------
+        async function refreshCount() {
+            try {
+                const resp = await fetch('/api/stats');
+                const stats = await resp.json();
+                recordCount.textContent = stats.totalRecords;
+            } catch (e) { /* 忽略 */ }
+        }
+
+        // ---------- 渲染汇总（服务端数据） ----------
+        function renderSummaryFromStats(stats) {
+            $('statRecords').textContent = stats.totalRecords;
+            $('statWorks').textContent = stats.totalWorks;
+            $('statJudges').textContent = stats.totalJudges;
+
+            if (!stats.works || stats.works.length === 0) {
+                summaryContent.innerHTML = `
+                    <div class="empty-state">
+                        <div class="icon">📭</div>
+                        <p>暂无评分数据<br /><span style="font-size:13px;">请先在「评分」面板提交评分</span></p>
+                    </div>`;
+                return;
+            }
+
+            let html = '';
+            for (const w of stats.works) {
+                html += `
+                    <div class="work-result">
+                        <div class="work-name">📌 ${w.workName}</div>
+                        <div class="work-meta">
+                            <span class="item"><span class="tag tag-leader">领导</span> ${w.leaderCount} 人 · 均分 ${formatNum(w.leaderAvg)}</span>
+                            <span class="item"><span class="tag tag-public">大众</span> ${w.publicCount} 组 · 均分 ${formatNum(w.publicAvg)}</span>
+                            <span class="item"><span class="tag tag-final">🏆 最终</span> <strong>${formatNum(w.finalScore)}</strong></span>
+                            <span class="item">📊 共 ${w.totalCount} 条</span>
+                        </div>
+                        <div class="detail-link" data-work="${encodeURIComponent(w.workName)}">📺 查看实时大屏 →</div>
+                    </div>`;
+            }
+            summaryContent.innerHTML = html;
+
+            document.querySelectorAll('.detail-link').forEach(el => {
+                el.addEventListener('click', () => { window.open('/live', '_blank'); });
+            });
+        }
+
+        async function loadSummary() {
+            try {
+                const resp = await fetch('/api/stats');
+                const stats = await resp.json();
+                renderSummaryFromStats(stats);
+            } catch (e) {
+                summaryContent.innerHTML = `
+                    <div class="empty-state">
+                        <div class="icon">⚠️</div>
+                        <p>加载统计数据失败<br /><span style="font-size:13px;">请检查网络后重试</span></p>
+                    </div>`;
+            }
+        }
+
+        // ---------- Toast ----------
+        let toastTimer = null;
+        function showToast(msg, type = 'info') {
+            toast.textContent = msg;
+            toast.className = 'toast ' + type;
+            void toast.offsetWidth;
+            toast.classList.add('show');
+            clearTimeout(toastTimer);
+            toastTimer = setTimeout(() => { toast.classList.remove('show'); }, 2800);
+        }
+
+        // ---------- 切换 Tab ----------
+        function switchTab(tab) {
+            if (tab === 'score') {
+                panelScore.classList.remove('hidden');
+                panelSummary.classList.add('hidden');
+                tabScore.classList.add('active');
+                tabSummary.classList.remove('active');
+            } else {
+                panelScore.classList.add('hidden');
+                panelSummary.classList.remove('hidden');
+                tabSummary.classList.add('active');
+                tabScore.classList.remove('active');
+                loadSummary();
+            }
+        }
+
+        // ---------- 初始化 ----------
+        function init() {
+            initTeamOptions();
+            updateJudgeNameOptions();
+
+            for (const key of ['innovation', 'practicality', 'quality', 'presentation']) {
+                sliders[key].addEventListener('input', updatePreview);
+            }
+            judgeType.addEventListener('change', updateJudgeNameOptions);
+            btnSubmit.addEventListener('click', submitScore);
+            btnReset.addEventListener('click', resetForm);
+            btnRefresh.addEventListener('click', loadSummary);
+
+            tabScore.addEventListener('click', () => switchTab('score'));
+            tabSummary.addEventListener('click', () => switchTab('summary'));
+            gotoSummary.addEventListener('click', () => switchTab('summary'));
+
+            resetForm();
+            refreshCount();
+            switchTab('score');
+
+            console.log('🏆 AI竞赛评分系统已启动（服务端模式）');
+        }
+
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+
+</body>
+</html>

@@ -1,0 +1,16 @@
+{
+  "name": "ai-score-live",
+  "version": "1.0.0",
+  "description": "AI 技能竞赛实时评分系统：评委扫码评分，主持人大屏实时排行榜（Node 内置 http + SSE，零框架依赖）",
+  "private": true,
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "qrcode": "^1.5.4"
+  }
+}
