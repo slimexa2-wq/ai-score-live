@@ -383,6 +383,20 @@ async function handleRequest(req, res) {
       return sendJson(res, 400, { ok: false, error: errMsg });
     }
 
+    // 评委+作品唯一性校验：同一评委(judgeType+judgeName)对同一作品(workName)只能评一次
+    const judgeNameTrim = String(body.judgeName).trim();
+    const workNameTrim = String(body.workName).trim();
+    const key = body.judgeType + '|' + judgeNameTrim + '|' + workNameTrim;
+    const taken = store.data.some(r =>
+      (r.judgeType + '|' + r.judgeName + '|' + r.workName) === key
+    );
+    if (taken) {
+      return sendJson(res, 409, {
+        ok: false,
+        error: '您（' + judgeNameTrim + '）已对作品《' + workNameTrim + '》评过分，每位评委对同一作品只能评分一次'
+      });
+    }
+
     const innovation = toInt(body.innovation);
     const practicality = toInt(body.practicality);
     const quality = toInt(body.quality);
@@ -413,6 +427,21 @@ async function handleRequest(req, res) {
     broadcastStats();
 
     return sendJson(res, 200, { ok: true, record });
+  }
+
+  // ---- 已占用评委身份列表（供前端禁用下拉选项） ----
+  // 结构：{ leader: { "龙章其": ["作品A"], ... }, public: { "第一组": ["作品A"], ... } }
+  if (req.method === 'GET' && pathname === '/api/used-judges') {
+    const used = {};
+    store.data.forEach(r => {
+      const t = r.judgeType;
+      if (!used[t]) used[t] = {};
+      if (!used[t][r.judgeName]) used[t][r.judgeName] = [];
+      if (!used[t][r.judgeName].includes(r.workName)) {
+        used[t][r.judgeName].push(r.workName);
+      }
+    });
+    return sendJson(res, 200, { ok: true, used });
   }
 
   // ---- 统计 ----

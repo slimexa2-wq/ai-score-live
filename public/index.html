@@ -777,7 +777,7 @@
         }
 
         // ---------- 更新下拉列表 ----------
-        function updateJudgeNameOptions() {
+        async function updateJudgeNameOptions() {
             const type = judgeType.value;
             const names = type === 'leader' ? LEADER_NAMES : PUBLIC_NAMES;
             const currentVal = judgeName.value;
@@ -790,6 +790,24 @@
             });
             if (names.includes(currentVal)) {
                 judgeName.value = currentVal;
+            }
+            // 拉取已被占用的评委身份，将其对应选项禁用并标注「已占用」
+            // 新结构：used[type] 是对象 { judgeName: [workName,...] }，只要 judgeName 出现即禁用
+            try {
+                const resp = await fetch('/api/used-judges');
+                const data = await resp.json();
+                const usedMap = (data.ok && data.used && data.used[type] && typeof data.used[type] === 'object')
+                    ? data.used[type]
+                    : {};
+                const usedNames = Object.keys(usedMap);
+                Array.from(judgeName.options).forEach(opt => {
+                    if (usedNames.includes(opt.value)) {
+                        opt.disabled = true;
+                        opt.textContent = opt.value + '（已占用）';
+                    }
+                });
+            } catch (e) {
+                // 网络异常时降级：不禁用任何选项，避免阻塞下拉
             }
         }
 
@@ -863,12 +881,18 @@
                 if (data.ok && data.record) {
                     const w = data.record.weightedScore;
                     showToast(`✅ 已提交「${wName}」评分 (${formatNum(w)}分)`, 'success');
+                    // 提交成功后该身份已被占用，刷新下拉禁用状态
+                    updateJudgeNameOptions();
                     // 仅重置滑块，保留评委信息与队名以便连续提交
                     for (const key of ['innovation', 'practicality', 'quality', 'presentation']) {
                         sliders[key].value = 5;
                     }
                     updatePreview();
                     refreshCount();
+                } else if (resp.status === 409) {
+                    // 评委+作品已评过：保留表单，展示服务端提示，并刷新下拉禁用状态
+                    showToast('⚠️ ' + (data.error || '您已对该作品评过分'), 'error');
+                    updateJudgeNameOptions();
                 } else {
                     showToast('❌ ' + (data.error || '提交失败'), 'error');
                 }
