@@ -1,14 +1,15 @@
-# Render Blueprint —— 一键部署（免费层）
+# Render Blueprint —— 一键部署（免费层，无需绑卡，完全免费）
 # 部署后公网地址固定为 https://<service-name>.onrender.com
-# 这里已把 PUBLIC_URL 写死成该地址，启动后二维码会自动指向公网，无需手动改。
+# 二维码会根据实际请求域名自动生成，无需设置 PUBLIC_URL（动态解析已内置）。
+# 注意（免费层特性）：
+#   - 实例在空闲约 15 分钟后会休眠，下次访问冷启动约 10–30s；活动期间持续有评分请求不会休眠。
+#   - 大屏每 3 秒轮询一次，可起到保活作用，降低休眠概率。
+#   - 文件系统为临时存储，重新部署时会重置；活动期间不重新部署则 200 条以内数据不会丢。
 services:
   - type: web
     name: ai-score-live
     runtime: node
     plan: free
-    region: oregon           # 可选：singapore / frankfurt 等
+    region: singapore        # 离国内更近；可选 oregon / frankfurt 等
     buildCommand: npm install
     startCommand: node server.js
-    envVars:
-      - key: PUBLIC_URL
-        value: "https://ai-score-live.onrender.com"
